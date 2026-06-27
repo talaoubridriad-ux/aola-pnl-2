@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AOLA — P&L</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg0:#080810;--bg1:#0F0F1A;--bg2:#161625;--bg3:#1E1E30;--bg4:#252538;
+  --border:#2A2A42;--border2:#333352;
+  --gold:#D4A843;--gold2:#E8C060;
+  --text1:#F0EDE6;--text2:#B8B4AA;--text3:#7A7870;
+  --green:#16A34A;--green2:#22C55E;--red:#DC2626;--red2:#EF4444;
+  --blue:#3B82F6;--purple:#8B5CF6;
+  --fm:'JetBrains Mono','Fira Mono',monospace;--r:8px;--r2:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg0);color:var(--text1);font-family:-apple-system,'Inter',sans-serif;font-size:13px;min-height:100vh;}
+.layout{display:flex;min-height:100vh;}
+.sidebar{width:230px;min-width:230px;background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 0;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.main{flex:1;padding:28px;overflow-x:auto;min-width:0;}
+.logo{padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:16px;}
+.logo-brand{font-size:18px;font-weight:800;color:var(--gold);letter-spacing:2px;}
+.logo-sub{font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:2px;}
+.nav-section{padding:0 12px;margin-bottom:8px;}
+.nav-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;padding:0 8px;margin-bottom:4px;}
+.nav-item{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:var(--r);cursor:pointer;transition:all .15s;color:var(--text3);font-size:12px;font-weight:500;border:none;background:transparent;width:100%;text-align:left;}
+.nav-item:hover{background:var(--bg3);color:var(--text2);}
+.nav-item.active{background:rgba(212,168,67,.12);color:var(--gold);}
+.nav-item .ico{width:18px;text-align:center;font-size:14px;}
+.nav-item .badge{margin-left:auto;background:var(--bg4);color:var(--text3);font-size:10px;padding:1px 6px;border-radius:99px;font-family:var(--fm);}
+.nav-item.active .badge{background:rgba(212,168,67,.2);color:var(--gold);}
+.nav-item.done .badge{background:rgba(22,163,74,.15);color:var(--green2);}
+.sidebar-sep{border:none;border-top:1px solid var(--border);margin:10px 20px;}
+.sidebar-footer{padding:12px 20px;margin-top:auto;}
+.sf-row{display:flex;justify-content:space-between;margin-bottom:5px;font-size:11px;}
+.sf-label{color:var(--text3);}
+.sf-val{color:var(--text2);font-family:var(--fm);}
+.page{display:none;}.page.on{display:block;}
+.page-title{font-size:22px;font-weight:700;margin-bottom:4px;}
+.page-sub{font-size:13px;color:var(--text3);margin-bottom:24px;}
+/* Upload */
+.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+.upload-card{background:var(--bg2);border:1.5px dashed var(--border2);border-radius:var(--r2);padding:20px;cursor:pointer;transition:all .2s;position:relative;}
+.upload-card:hover,.upload-card.drag{border-color:var(--gold);background:rgba(212,168,67,.05);}
+.upload-card.done{border-style:solid;border-color:var(--green);background:rgba(22,163,74,.05);}
+.uc-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.uc-ico{font-size:22px;}
+.uc-title{font-size:13px;font-weight:600;}
+.uc-desc{font-size:11px;color:var(--text3);line-height:1.5;margin-bottom:10px;}
+.uc-status{font-size:11px;font-family:var(--fm);}
+.uc-status.ok{color:var(--green2);}
+.uc-status.err{color:var(--red2);}
+.uc-dates{font-size:10px;color:var(--text3);margin-top:4px;font-family:var(--fm);}
+input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+/* Data coverage */
+.coverage-bar{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:16px;margin-bottom:20px;}
+.coverage-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;}
+.coverage-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.cov-item{background:var(--bg3);border-radius:var(--r);padding:12px;}
+.cov-label{font-size:10px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;}
+.cov-val{font-size:13px;font-weight:700;font-family:var(--fm);color:var(--text1);}
+.cov-dates{font-size:10px;color:var(--text3);margin-top:2px;}
+.cov-missing{color:var(--red2);font-size:11px;margin-top:6px;}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:var(--r);font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s;}
+.btn-gold{background:var(--gold);color:var(--bg0);}
+.btn-gold:hover{background:var(--gold2);}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2);}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold);}
+.btn-red{background:transparent;color:var(--red2);border:1px solid rgba(220,38,38,.3);}
+.btn-red:hover{background:rgba(220,38,38,.1);}
+.btn-sm{padding:6px 12px;font-size:11px;}
+.btns{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px;}
+/* Tables */
+.tbl-wrap{overflow-x:auto;border-radius:var(--r2);border:1px solid var(--border);margin-bottom:16px;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead th{background:var(--bg3);color:var(--text3);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.5px;padding:9px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--border);}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:var(--bg3);}
+tbody td{padding:7px 12px;color:var(--text2);vertical-align:middle;}
+.pos{color:var(--green2);font-family:var(--fm);font-weight:600;}
+.neg{color:var(--red2);font-family:var(--fm);font-weight:600;}
+.neutral{color:var(--text3);font-family:var(--fm);}
+.mono{font-family:var(--fm);}
+.badge{display:inline-flex;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:600;}
+.b-livree{background:rgba(22,163,74,.18);color:var(--green2);}
+.b-retour{background:rgba(220,38,38,.18);color:var(--red2);}
+.b-encours{background:rgba(59,130,246,.18);color:#60A5FA;}
+.b-pending{background:rgba(120,120,120,.18);color:var(--text3);}
+.b-pos{background:rgba(212,168,67,.15);color:var(--gold2);}
+.b-annulee{background:rgba(80,80,80,.2);color:var(--text3);}
+.editable{background:transparent;border:none;color:var(--text2);font-family:inherit;font-size:12px;width:100%;padding:0;cursor:text;}
+.editable:focus{outline:1px solid var(--gold);border-radius:3px;padding:1px 4px;background:var(--bg4);color:var(--text1);}
+select.editable{cursor:pointer;}
+/* P&L */
+.tabs{display:flex;gap:4px;background:var(--bg2);padding:4px;border-radius:var(--r);width:fit-content;margin-bottom:16px;}
+.tab{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text3);transition:all .15s;border:none;background:transparent;}
+.tab.on{background:var(--bg4);color:var(--gold);}
+.pos-tabs{display:flex;gap:4px;background:var(--bg2);padding:4px;border-radius:var(--r);width:fit-content;margin-bottom:16px;flex-wrap:wrap;}
+.postab{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text3);transition:all .15s;border:none;background:transparent;}
+.postab.on{background:var(--gold);color:var(--bg0);}
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px;}
+.kpi-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.kpi-val{font-size:20px;font-weight:800;font-family:var(--fm);}
+.kpi-sub{font-size:10px;color:var(--text3);margin-top:3px;}
+.kpi.gold{border-color:rgba(212,168,67,.3);}.kpi.gold .kpi-val{color:var(--gold);}
+.kpi.green .kpi-val{color:var(--green2);}
+.kpi.red .kpi-val{color:var(--red2);}
+/* P&L table */
+.pnl-tbl{width:100%;border-collapse:collapse;}
+.pnl-section-row td{padding:14px 12px 5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);background:var(--bg1);}
+.pnl-row td{padding:7px 12px;border-bottom:1px solid var(--border);font-size:12px;}
+.pnl-row:hover td{background:var(--bg3);}
+.pnl-row td:first-child{color:var(--text2);padding-left:24px;}
+.pnl-subtotal td{padding:9px 12px;background:var(--bg3);font-weight:700;border-top:1px solid var(--border2);border-bottom:1px solid var(--border2);}
+.pnl-subtotal td:first-child{color:var(--text1);}
+.pnl-ebitda td{padding:13px 12px;background:rgba(212,168,67,.07);font-weight:800;font-size:14px;border-top:2px solid var(--gold);}
+.pnl-ebitda td:first-child{color:var(--gold);}
+/* Month/week selector */
+.period-grid{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+.pcell{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;background:var(--bg3);color:var(--text3);border:1px solid var(--border);transition:all .15s;}
+.pcell:hover{color:var(--text2);}
+.pcell.on{background:var(--bg4);color:var(--gold);border-color:var(--gold);}
+.pcell.has{color:var(--text2);}
+/* Stats bar */
+.stats-bar{display:flex;gap:20px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:11px 18px;margin-bottom:14px;flex-wrap:wrap;}
+.stat{display:flex;flex-direction:column;gap:2px;}
+.stat-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;}
+.stat-val{font-size:14px;font-weight:700;font-family:var(--fm);}
+/* Filter bar */
+.filter-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+.filter-bar input,.filter-bar select{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);padding:7px 12px;font-size:12px;}
+.filter-bar input:focus,.filter-bar select:focus{outline:none;border-color:var(--gold);}
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;padding:11px 18px;border-radius:var(--r);font-size:12px;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;}
+.toast.ok{background:var(--green);color:#fff;}
+.toast.err{background:var(--red);color:#fff;}
+.toast.show{opacity:1;}
+/* Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;}
+.modal-bg.on{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r2);padding:24px;width:480px;max-width:95vw;}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:8px;}
+.modal-body{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:20px;}
+@media(max-width:900px){.sidebar{display:none;}.upload-grid{grid-template-columns:1fr;}.kpi-grid{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-brand">AOLA</div>
+    <div class="logo-sub">P&L ANALYTICS</div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Données</div>
+    <button class="nav-item active" id="nav-import" onclick="showPage('import')"><span class="ico">📥</span>Import<span class="badge" id="nb-import">—</span></button>
+    <button class="nav-item" id="nav-coverage" onclick="showPage('coverage')"><span class="ico">📅</span>Couverture<span class="badge" id="nb-coverage">—</span></button>
+    <button class="nav-item" id="nav-recon" onclick="showPage('recon')"><span class="ico">🔍</span>Réconciliation<span class="badge" id="nb-recon">—</span></button>
+  </div>
+  <hr class="sidebar-sep">
+  <div class="nav-section">
+    <div class="nav-label">Résultats</div>
+    <button class="nav-item" id="nav-pnl" onclick="showPage('pnl');buildPnl()"><span class="ico">📊</span>P&L<span class="badge" id="nb-pnl">—</span></button>
+    <button class="nav-item" id="nav-charges" onclick="showPage('charges')"><span class="ico">🏷️</span>Charges fixes<span class="badge" id="nb-charges">—</span></button>
+    <button class="nav-item" id="nav-detail" onclick="showPage('detail')"><span class="ico">📋</span>Détail commandes<span class="badge" id="nb-detail">—</span></button>
+  </div>
+  <hr class="sidebar-sep">
+  <div class="sidebar-footer" id="sidebar-footer"></div>
+</aside>
+
+<main class="main">
+
+<!-- IMPORT -->
+<div class="page on" id="pg-import">
+  <div class="page-title">Import des données</div>
+  <div class="page-sub">Les données sont sauvegardées automatiquement dans votre navigateur</div>
+  <div class="upload-grid">
+    <div class="upload-card" id="card-shopify" ondragover="drag(event,'shopify')" ondragleave="undrag('shopify')" ondrop="drop(event,'shopify')">
+      <input type="file" accept=".xlsx,.csv" onchange="loadFile(event,'shopify')">
+      <div class="uc-header"><span class="uc-ico">🛍️</span><span class="uc-title">Commandes Shopify</span></div>
+      <div class="uc-desc">Export commandes Shopify (.csv ou .xlsx). Uploadez plusieurs fichiers — les données s'accumulent.</div>
+      <div class="uc-status" id="st-shopify"></div>
+      <div class="uc-dates" id="dt-shopify"></div>
+    </div>
+    <div class="upload-card" id="card-yalidine" ondragover="drag(event,'yalidine')" ondragleave="undrag('yalidine')" ondrop="drop(event,'yalidine')">
+      <input type="file" accept=".xlsx,.csv" onchange="loadFile(event,'yalidine')">
+      <div class="uc-header"><span class="uc-ico">📦</span><span class="uc-title">Yalidine (max 800 lignes)</span></div>
+      <div class="uc-desc">Uploadez un fichier à la fois. Chaque upload est ajouté au cumul existant.</div>
+      <div class="uc-status" id="st-yalidine"></div>
+      <div class="uc-dates" id="dt-yalidine"></div>
+    </div>
+    <div class="upload-card" id="card-catalogue" ondragover="drag(event,'catalogue')" ondragleave="undrag('catalogue')" ondrop="drop(event,'catalogue')">
+      <input type="file" accept=".xlsx,.csv" onchange="loadFile(event,'catalogue')">
+      <div class="uc-header"><span class="uc-ico">📋</span><span class="uc-title">Catalogue produits</span></div>
+      <div class="uc-desc">Export produits Shopify avec coûts. Remplace le précédent à chaque upload.</div>
+      <div class="uc-status" id="st-catalogue"></div>
+      <div class="uc-dates" id="dt-catalogue"></div>
+    </div>
+    <div class="upload-card" id="card-depenses" ondragover="drag(event,'depenses')" ondragleave="undrag('depenses')" ondrop="drop(event,'depenses')">
+      <input type="file" accept=".xlsx,.csv" onchange="loadFile(event,'depenses')">
+      <div class="uc-header"><span class="uc-ico">💸</span><span class="uc-title">Dépenses (export tréso)</span></div>
+      <div class="uc-desc">Export dépenses de l'app trésorerie. Remplace le précédent à chaque upload.</div>
+      <div class="uc-status" id="st-depenses"></div>
+      <div class="uc-dates" id="dt-depenses"></div>
+    </div>
+  </div>
+  <div class="btns">
+    <button class="btn btn-gold" onclick="processAll()">⚙️ Traiter les données</button>
+    <button class="btn btn-ghost btn-sm" onclick="showPage('coverage')">Voir la couverture →</button>
+    <button class="btn btn-red btn-sm" onclick="confirmReset()">🗑️ Réinitialiser tout</button>
+  </div>
+</div>
+
+<!-- COVERAGE -->
+<div class="page" id="pg-coverage">
+  <div class="page-title">Couverture des données</div>
+  <div class="page-sub">Vérifiez quelle période est couverte et ce qu'il manque</div>
+  <div id="coverage-content"></div>
+  <div class="btns">
+    <button class="btn btn-gold" onclick="processAll();showPage('recon')">⚙️ Traiter → Réconciliation</button>
+    <button class="btn btn-ghost btn-sm" onclick="showPage('import')">← Import</button>
+  </div>
+</div>
+
+<!-- RECONCILIATION -->
+<div class="page" id="pg-recon">
+  <div class="page-title">Réconciliation</div>
+  <div class="page-sub">Vérifiez et corrigez avant de générer le P&L</div>
+  <div class="tabs">
+    <button class="tab on" onclick="switchTab('orders',this)">Commandes</button>
+    <button class="tab" onclick="switchTab('depenses',this)">Dépenses</button>
+    <button class="tab" onclick="switchTab('skus',this)">SKUs sans coût</button>
+  </div>
+  <div id="rtab-orders">
+    <div class="filter-bar">
+      <input type="text" id="r-search" placeholder="🔍 Rechercher..." oninput="renderOrders()" style="width:180px;">
+      <select id="r-pos" onchange="renderOrders()">
+        <option value="">Tous POS</option>
+        <option value="dely">Dely Ibrahim</option>
+        <option value="garden">Garden City</option>
+        <option value="oran">AZ Oran</option>
+        <option value="ecom">E-Commerce</option>
+      </select>
+      <select id="r-statut" onchange="renderOrders()">
+        <option value="">Tous statuts</option>
+        <option value="pos">POS</option>
+        <option value="livree">Livrée</option>
+        <option value="retour">Retour</option>
+        <option value="pending">En attente Yalidine</option>
+        <option value="annulee">Annulée</option>
+      </select>
+      <select id="r-month" onchange="renderOrders()"><option value="">Tous mois</option></select>
+    </div>
+    <div id="orders-stats" class="stats-bar"></div>
+    <div class="tbl-wrap" style="max-height:520px;overflow-y:auto;">
+      <table><thead><tr>
+        <th>Date</th><th>Commande</th><th>POS</th><th>Statut</th>
+        <th>CA</th><th>CMV produits</th><th>Packaging</th><th>CMV total</th>
+        <th>Frais YAL</th><th>Marge</th>
+      </tr></thead>
+      <tbody id="tb-orders"></tbody></table>
+    </div>
+  </div>
+  <div id="rtab-depenses" style="display:none;">
+    <div class="filter-bar">
+      <input type="text" id="rd-search" placeholder="🔍 Rechercher..." oninput="renderDeps()" style="width:180px;">
+      <select id="rd-cat" onchange="renderDeps()"><option value="">Toutes catégories</option></select>
+      <select id="rd-pos" onchange="renderDeps()">
+        <option value="">Tous POS</option>
+        <option value="dely">Dely Ibrahim</option>
+        <option value="garden">Garden City</option>
+        <option value="oran">AZ Oran</option>
+        <option value="ecom">E-Commerce</option>
+        <option value="global">Global</option>
+      </select>
+    </div>
+    <div class="tbl-wrap" style="max-height:520px;overflow-y:auto;">
+      <table><thead><tr><th>Date</th><th>Catégorie</th><th>Montant</th><th>POS</th><th>Note</th></tr></thead>
+      <tbody id="tb-deps"></tbody></table>
+    </div>
+  </div>
+  <div id="rtab-skus" style="display:none;">
+    <div class="page-sub" style="margin-bottom:12px;">Ces SKUs ont été vendus mais n'ont pas de coût dans le catalogue. Saisissez les coûts manuellement.</div>
+    <div class="tbl-wrap">
+      <table><thead><tr><th>SKU</th><th>Nom produit</th><th>Nb ventes</th><th>CA généré</th><th>Coût unitaire (DA)</th></tr></thead>
+      <tbody id="tb-skus"></tbody></table>
+    </div>
+    <div class="btns"><button class="btn btn-gold btn-sm" onclick="applyManualCosts()">✅ Appliquer les coûts</button></div>
+  </div>
+  <div class="btns">
+    <button class="btn btn-gold" onclick="showPage('pnl');buildPnl()">📊 Générer le P&L →</button>
+    <button class="btn btn-ghost btn-sm" onclick="showPage('coverage')">← Couverture</button>
+  </div>
+</div>
+
+<!-- P&L -->
+<div class="page" id="pg-pnl">
+  <div class="page-title">P&L AOLA</div>
+  <div class="page-sub">Compte de résultat par point de vente</div>
+  <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px;">
+    <div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;">Période</div>
+      <div class="tabs" style="margin-bottom:0;">
+        <button class="tab on" onclick="setPeriod('mois',this)">Mois</button>
+        <button class="tab" onclick="setPeriod('ytd',this)">YTD</button>
+        <button class="tab" onclick="setPeriod('tout',this)">Tout</button>
+      </div>
+    </div>
+    <div id="period-selector" style="flex:1;">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;">Sélection</div>
+      <div class="period-grid" id="period-grid"></div>
+    </div>
+  </div>
+  <div class="pos-tabs" id="pos-tabs">
+    <button class="postab on" onclick="setPOS('total',this)">🏢 Consolidé</button>
+    <button class="postab" onclick="setPOS('dely',this)">📍 Dely Ibrahim</button>
+    <button class="postab" onclick="setPOS('garden',this)">📍 Garden City</button>
+    <button class="postab" onclick="setPOS('oran',this)">📍 AZ Oran</button>
+    <button class="postab" onclick="setPOS('ecom',this)">🌐 E-Commerce</button>
+  </div>
+  <div class="kpi-grid" id="kpi-grid"></div>
+  <div class="tbl-wrap"><table class="pnl-tbl" id="pnl-tbl"></table></div>
+  <div class="btns">
+    <button class="btn btn-gold" onclick="exportPnlXlsx()">📥 Export Excel</button>
+    <button class="btn btn-ghost" onclick="exportPnlPdf()">📄 PDF</button>
+    <button class="btn btn-ghost btn-sm" onclick="showPage('recon')">← Modifier</button>
+  </div>
+</div>
+
+<!-- DETAIL -->
+<div class="page" id="pg-detail">
+  <div class="page-title">Détail des commandes</div>
+  <div class="page-sub">Toutes les commandes traitées</div>
+  <div class="filter-bar">
+    <input type="text" id="det-search" placeholder="🔍 N° commande, POS..." oninput="renderDetail()" style="width:200px;">
+    <select id="det-pos" onchange="renderDetail()">
+      <option value="">Tous POS</option>
+      <option value="dely">Dely Ibrahim</option>
+      <option value="garden">Garden City</option>
+      <option value="oran">AZ Oran</option>
+      <option value="ecom">E-Commerce</option>
+    </select>
+    <select id="det-statut" onchange="renderDetail()">
+      <option value="">Tous statuts</option>
+      <option value="pos">POS</option>
+      <option value="livree">Livrée</option>
+      <option value="retour">Retour</option>
+      <option value="pending">En attente</option>
+      <option value="annulee">Annulée</option>
+    </select>
+    <select id="det-month" onchange="renderDetail()"><option value="">Tous mois</option></select>
+  </div>
+  <div id="det-stats" class="stats-bar"></div>
+  <div class="tbl-wrap" style="max-height:600px;overflow-y:auto;">
+    <table><thead><tr>
+      <th>Date</th><th>Commande</th><th>POS</th><th>Statut</th><th>Nb bijoux</th>
+      <th>CA</th><th>CMV produits</th><th>Packaging</th><th>CMV total</th><th>Frais YAL</th><th>Marge</th><th>%</th>
+    </tr></thead>
+    <tbody id="tb-detail"></tbody></table>
+  </div>
+  <div class="btns">
+    <button class="btn btn-gold btn-sm" onclick="exportDetailXlsx()">📥 Export Excel</button>
+  </div>
+</div>
+
+
+<!-- CHARGES FIXES -->
+<div class="page" id="pg-charges">
+  <div class="page-title">Charges fixes</div>
+  <div class="page-sub">Saisissez vos charges fixes mensuelles par point de vente. Elles s'ajoutent automatiquement au P&L.</div>
+
+  <!-- Add form -->
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:20px;margin-bottom:20px;">
+    <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:14px;">Ajouter une charge fixe</div>
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:10px;align-items:end;">
+      <div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;">Libellé</div>
+        <input id="cf-label" type="text" placeholder="ex: Loyer Dely Ibrahim" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);padding:8px 12px;font-size:12px;">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;">Montant (DA)</div>
+        <input id="cf-montant" type="number" placeholder="150000" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);padding:8px 12px;font-size:12px;">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;">POS</div>
+        <select id="cf-pos" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);padding:8px 12px;font-size:12px;">
+          <option value="dely">Dely Ibrahim</option>
+          <option value="garden">Garden City</option>
+          <option value="oran">AZ Oran</option>
+          <option value="ecom">E-Commerce</option>
+          <option value="global">Global (tous POS)</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;">Mois (optionnel)</div>
+        <input id="cf-mois" type="month" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);padding:8px 12px;font-size:12px;">
+      </div>
+      <button class="btn btn-gold" onclick="addChargeFix()" style="height:38px;">+ Ajouter</button>
+    </div>
+  </div>
+
+  <!-- Charges list -->
+  <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+    <select id="cf-filter-pos" onchange="renderChargesFixes()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);padding:7px 12px;font-size:12px;">
+      <option value="">Tous POS</option>
+      <option value="dely">Dely Ibrahim</option>
+      <option value="garden">Garden City</option>
+      <option value="oran">AZ Oran</option>
+      <option value="ecom">E-Commerce</option>
+      <option value="global">Global</option>
+    </select>
+    <select id="cf-filter-mois" onchange="renderChargesFixes()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);padding:7px 12px;font-size:12px;">
+      <option value="">Tous mois</option>
+    </select>
+    <div id="cf-total" style="margin-left:auto;font-size:13px;font-weight:700;font-family:var(--fm);color:var(--gold);"></div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>Libellé</th><th>Montant</th><th>POS</th><th>Mois</th><th></th>
+      </tr></thead>
+      <tbody id="tb-charges"></tbody>
+    </table>
+  </div>
+
+  <!-- Résumé par POS -->
+  <div style="margin-top:20px;">
+    <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Résumé par POS (tous mois)</div>
+    <div id="cf-summary" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;"></div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<!-- Modal reset -->
+<div class="modal-bg" id="modal-reset">
+  <div class="modal">
+    <div class="modal-title">⚠️ Réinitialiser toutes les données ?</div>
+    <div class="modal-body">Cette action supprimera toutes les données Shopify, Yalidine, catalogue et dépenses sauvegardées. Cette action est irréversible.</div>
+    <div class="btns">
+      <button class="btn btn-red" onclick="doReset()">Oui, tout supprimer</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══ CONSTANTES ═══
+const EXCL_SKUS = new Set(['CARTE MESSAGE CADEAU','Boite6x9','Boite9x9','Grand sac',
+  'CAC4000','CAC5000','CAC6000','CAC7000','CAC8000','CAC10000']);
+
+const PKG = {
+  boite_6x9:41, boite_9x9:69, boite_tiroir:120,
+  pochon:55, carte:6, envelope:7, sac:26
+};
+
+const CATS_FIXES = ['loyer','salaire','publicité','meta ads','fournisseur','yalidine frais','autre charge','import','impots'];
+const POS_LABELS = {dely:'Dely Ibrahim',garden:'Garden City',oran:'AZ Oran',ecom:'E-Commerce',total:'Consolidé'};
+
+// ═══ STATE ═══
+let S = {
+  shopify_rows: [],   // raw Shopify lignes accumulées
+  yalidine_rows: [],  // raw Yalidine lignes accumulées
+  catalogue: {},      // sku -> {nom, cout, prixVente}
+  depenses: [],       // {date, cat, montant, pos, note}
+  manualCosts: {},    // sku -> cout saisi manuellement
+  chargesFixesManuelles: [], // {id, label, montant, pos, mois} saisies manuellement
+  orders: [],         // commandes traitées
+  period: 'mois',
+  selPeriod: null,
+  selPos: 'total',
+  processed: false,
+};
+
+// ═══ PERSISTENCE ═══
+function saveState() {
+  try {
+    const toSave = {
+      shopify_rows: S.shopify_rows,
+      yalidine_rows: S.yalidine_rows,
+      catalogue: S.catalogue,
+      depenses: S.depenses,
+      manualCosts: S.manualCosts,
+      chargesFixesManuelles: S.chargesFixesManuelles,
+    };
+    localStorage.setItem('aola_pnl_v1', JSON.stringify(toSave));
+  } catch(e) { console.warn('Storage full:', e); }
+}
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem('aola_pnl_v1');
+    if(saved) {
+      const d = JSON.parse(saved);
+      S.shopify_rows = d.shopify_rows || [];
+      S.yalidine_rows = d.yalidine_rows || [];
+      S.catalogue = d.catalogue || {};
+      S.depenses = d.depenses || [];
+      S.manualCosts = d.manualCosts || {};
+      S.chargesFixesManuelles = d.chargesFixesManuelles || [];
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
+// ═══ FILE LOADING ═══
+function drag(e, t) { e.preventDefault(); document.getElementById('card-'+t).classList.add('drag'); }
+function undrag(t) { document.getElementById('card-'+t).classList.remove('drag'); }
+function drop(e, t) { e.preventDefault(); undrag(t); const f=e.dataTransfer.files[0]; if(f) parseFile(f,t); }
+function loadFile(e, t) { const f=e.target.files[0]; if(f) parseFile(f,t); }
+
+function parseFile(file, type) {
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      let rows;
+      if(file.name.toLowerCase().endsWith('.csv')) {
+        rows = parseCSV(ev.target.result);
+      } else {
+        const wb = XLSX.read(ev.target.result, {type:'array', cellDates:true});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(ws, {defval:'', raw:false});
+      }
+      handleRows(rows, type, file.name);
+    } catch(err) {
+      setStatus(type, `❌ Erreur: ${err.message}`, 'err');
+    }
+  };
+  if(file.name.toLowerCase().endsWith('.csv')) reader.readAsText(file,'UTF-8');
+  else reader.readAsArrayBuffer(file);
+}
+
+function parseCSV(text) {
+  const lines = text.replace(/\r/g,'').split('\n').filter(l=>l.trim());
+  if(!lines.length) return [];
+  // Handle quoted fields
+  const parseRow = row => {
+    const result = []; let cur = ''; let inQ = false;
+    for(let i=0;i<row.length;i++) {
+      const c = row[i];
+      if(c==='"') { if(inQ && row[i+1]==='"'){cur+='"';i++;} else inQ=!inQ; }
+      else if(c===',' && !inQ) { result.push(cur.trim()); cur=''; }
+      else cur+=c;
+    }
+    result.push(cur.trim());
+    return result;
+  };
+  const headers = parseRow(lines[0]);
+  return lines.slice(1).map(line => {
+    const vals = parseRow(line);
+    const obj = {};
+    headers.forEach((h,i) => obj[h] = vals[i]||'');
+    return obj;
+  });
+}
+
+function handleRows(rows, type, filename) {
+  if(type === 'shopify') {
+    // Accumulate, deduplicate by Name+Lineitem sku+Lineitem quantity
+    const existing = new Set(S.shopify_rows.map(r => r['Name']+'|'+r['Lineitem sku']+'|'+r['Lineitem quantity']));
+    let added = 0;
+    rows.forEach(r => {
+      const key = r['Name']+'|'+r['Lineitem sku']+'|'+r['Lineitem quantity'];
+      if(!existing.has(key)) { S.shopify_rows.push(r); existing.add(key); added++; }
+    });
+    const dates = getShopifyDates();
+    setStatus('shopify', `✅ +${added} lignes ajoutées (total: ${S.shopify_rows.length})`, 'ok');
+    setDates('shopify', dates.min, dates.max, `${countOrders()} commandes`);
+    toast(`Shopify: +${added} lignes ajoutées`, 'ok');
+  } else if(type === 'yalidine') {
+    // Accumulate, deduplicate by tracking
+    const existing = new Set(S.yalidine_rows.map(r => str(r['tracking']||r['Tracking']||'')));
+    let added = 0;
+    rows.forEach(r => {
+      const key = str(r['tracking']||r['Tracking']||'');
+      if(key && !existing.has(key)) { S.yalidine_rows.push(r); existing.add(key); added++; }
+    });
+    const dates = getYalDates();
+    setStatus('yalidine', `✅ +${added} colis ajoutés (total: ${S.yalidine_rows.length})`, 'ok');
+    setDates('yalidine', dates.min, dates.max, `${S.yalidine_rows.length} colis cumulés`);
+    toast(`Yalidine: +${added} colis ajoutés`, 'ok');
+  } else if(type === 'catalogue') {
+    S.catalogue = {};
+    rows.forEach(r => {
+      const sku = str(r['Variant SKU']).trim();
+      const cout = parseF(r['Cost per item']);
+      const pv = parseF(r['Variant Price']);
+      const nom = str(r['Title']);
+      if(sku) S.catalogue[sku] = {nom, cout, prixVente:pv};
+    });
+    setStatus('catalogue', `✅ ${Object.keys(S.catalogue).length} SKUs chargés`, 'ok');
+    setDates('catalogue', '', '', `Mis à jour: ${new Date().toLocaleDateString('fr-DZ')}`);
+    toast(`Catalogue: ${Object.keys(S.catalogue).length} SKUs`, 'ok');
+  } else if(type === 'depenses') {
+    S.depenses = [];
+    rows.forEach(r => {
+      const type_op = str(r['type']||r['Type']||'');
+      if(!type_op.toLowerCase().includes('dep') && !type_op.toLowerCase().includes('dépense')) return;
+      const montant = Math.abs(parseF(r['montant']||r['Montant']||r['amount']||0));
+      if(!montant) return;
+      const date = str(r['date']||r['Date']||'');
+      const cat = str(r['canal']||r['Canal']||r['cat']||r['Catégorie']||r['categorie']||'');
+      const note = str(r['note']||r['Note']||r['desc']||'');
+      const posRaw = str(r['dest']||r['source']||r['pos']||r['POS']||'');
+      S.depenses.push({date, cat, montant, pos: detectDepPos(posRaw), note});
+    });
+    setStatus('depenses', `✅ ${S.depenses.length} dépenses chargées`, 'ok');
+    toast(`Dépenses: ${S.depenses.length} lignes`, 'ok');
+  }
+  saveState();
+  updateSidebar();
+  updateCoverage();
+}
+
+function detectDepPos(raw) {
+  const r = raw.toLowerCase();
+  if(r.includes('dely')||r.includes('boutique')||r.includes('ibrahim')) return 'dely';
+  if(r.includes('garden')) return 'garden';
+  if(r.includes('oran')||r.includes('az')) return 'oran';
+  if(r.includes('ecom')||r.includes('web')||r.includes('online')) return 'ecom';
+  return 'global';
+}
+
+// ═══ PROCESSING ═══
+function processAll() {
+  if(!S.shopify_rows.length) { toast('Uploadez au moins les commandes Shopify','err'); return; }
+
+  // Build Yalidine map
+  const yalMap = {};
+  S.yalidine_rows.forEach(r => {
+    const num = str(r['n commande']||r['N commande']||r['order_id']||'').trim();
+    const tracking = str(r['tracking']||r['Tracking']||'').trim();
+    const statutRaw = str(r['dernier statut']||r['statut']||r['Statut']||'').toLowerCase();
+    let statut = 'encours';
+    if(statutRaw.includes('livr') && !statutRaw.includes('retour')) statut='livree';
+    else if(statutRaw.includes('retour')) statut='retour';
+    const prix = parseF(r['prix']||r['Prix']||0);  // col R
+    const frais = parseF(r['frais livraison']||r['Frais livraison']||r['frais']||0);  // col U
+    const data = {statut, prix, frais, tracking, num};
+    if(num) yalMap[num]=data;
+    if(tracking) yalMap[tracking]=data;
+  });
+
+  // Group Shopify by order Name
+  const grouped = {};
+  const orderKeys = [];
+  S.shopify_rows.forEach(r => {
+    const name = str(r['Name']||'').trim();
+    if(!name.startsWith('#')) return;
+    const num = name.slice(1);
+    if(!grouped[name]) {
+      grouped[name] = {
+        name, num,
+        date: str(r['Created at']||r['created_at']||'').substring(0,10),
+        source: str(r['Source']||r['source']||''),
+        location: str(r['Location']||r['location']||''),
+        finStatus: str(r['Financial Status']||r['financial_status']||'').toLowerCase(),
+        fulStatus: str(r['Fulfillment Status']||r['fulfillment_status']||'').toLowerCase(),
+        subtotal: parseF(r['Subtotal']||r['subtotal']||0),
+        shipping: parseF(r['Shipping']||r['shipping']||0),
+        discountCode: str(r['Discount Code']||''),
+        discountAmt: parseF(r['Discount Amount']||0),
+        lines: [],
+      };
+      orderKeys.push(name);
+    }
+    const sku = str(r['Lineitem sku']||r['lineitem_sku']||'').trim();
+    const qty = parseInt(r['Lineitem quantity']||r['lineitem_quantity']||1)||1;
+    const price = parseF(r['Lineitem price']||r['lineitem_price']||0);
+    const iname = str(r['Lineitem name']||r['lineitem_name']||'');
+    grouped[name].lines.push({sku, qty, price, name:iname});
+  });
+
+  // Process each order
+  S.orders = [];
+  orderKeys.forEach(name => {
+    const o = grouped[name];
+    const pos = detectPos(o.source, o.location);
+
+    // Annulée ?
+    if(o.finStatus==='voided' && o.fulStatus==='unfulfilled') {
+      S.orders.push({...o, pos, statut:'annulee', ca:0, cmvProd:0, packaging:0, fraisYal:0, nbBijoux:0});
+      return;
+    }
+
+    const isEcom = pos==='ecom';
+    let statut = 'pos';
+    let fraisYal = 0;
+
+    if(isEcom) {
+      const yal = yalMap[o.num];
+      if(yal) {
+        statut = yal.statut;
+        // Frais à charge AOLA uniquement si livré ET subtotal > 7500
+        if(statut==='livree' && o.subtotal > 7500) fraisYal = yal.frais;
+      } else {
+        statut = 'pending';
+      }
+    }
+
+    const caComptabilise = !isEcom || statut==='livree';
+    const ca = caComptabilise ? o.subtotal : 0;
+
+    // CMV produits (hors SKUs exclus)
+    let cmvProd = 0;
+    const bijouLines = o.lines.filter(l => l.sku && !EXCL_SKUS.has(l.sku) && !l.sku.startsWith('CAC'));
+    bijouLines.forEach(l => {
+      const cat = S.catalogue[l.sku];
+      const cout = cat?.cout || S.manualCosts[l.sku] || 0;
+      if(cout) cmvProd += cout * l.qty;
+    });
+
+    // Nb bijoux pour packaging
+    const nbBijoux = bijouLines.reduce((s,l) => s+l.qty, 0);
+
+    // Packaging
+    let pkg = 0;
+    if(caComptabilise && nbBijoux > 0) {
+      pkg += nbBijoux * PKG.pochon;
+      if(nbBijoux<=2) pkg += PKG.boite_6x9;
+      else if(nbBijoux<=4) pkg += PKG.boite_9x9;
+      else pkg += PKG.boite_tiroir;
+      pkg += PKG.carte;
+      pkg += isEcom ? PKG.envelope : PKG.sac;
+    }
+
+    const cmvTotal = caComptabilise ? (cmvProd + pkg) : 0;
+    const marge = ca - cmvTotal - fraisYal;
+    const month = o.date.substring(0,7);
+
+    S.orders.push({...o, pos, statut, ca, cmvProd: caComptabilise?cmvProd:0, packaging:caComptabilise?pkg:0, cmvTotal, fraisYal, nbBijoux, marge, month});
+  });
+
+  S.processed = true;
+
+  // Build dep cat filter
+  const cats = [...new Set(S.depenses.map(d=>d.cat).filter(Boolean))].sort();
+  const sel = document.getElementById('rd-cat');
+  sel.innerHTML = '<option value="">Toutes catégories</option>'+cats.map(c=>`<option>${c}</option>`).join('');
+
+  // Build month filters
+  const months = [...new Set(S.orders.map(o=>o.month).filter(Boolean))].sort();
+  ['r-month','det-month'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.innerHTML = '<option value="">Tous mois</option>'+months.map(m=>`<option value="${m}">${fMonth(m)}</option>`).join('');
+  });
+
+  // Default period = latest month
+  if(months.length) S.selPeriod = months[months.length-1];
+
+  renderOrders();
+  renderDeps();
+  renderSkus();
+  updateSidebar();
+  buildPeriodGrid();
+  toast(`${S.orders.length} commandes traitées ✅`, 'ok');
+}
+
+function detectPos(source, location) {
+  const s = source.toLowerCase(), l = location.toLowerCase();
+  if(s==='pos') {
+    if(l.includes('boutique')||l.includes('dely')||l.includes('ibrahim')) return 'dely';
+    if(l.includes('garden')) return 'garden';
+    if(l.includes('oran')||l.includes('az')) return 'oran';
+    return 'dely';
+  }
+  return 'ecom';
+}
+
+// ═══ COVERAGE ═══
+function updateCoverage() {
+  const el = document.getElementById('coverage-content');
+  const shopDates = getShopifyDates();
+  const yalDates = getYalDates();
+  const nOrders = countOrders();
+  const nYal = S.yalidine_rows.length;
+  const nCat = Object.keys(S.catalogue).length;
+  const nDep = S.depenses.length;
+
+  // Find pending months (Shopify ecom orders without Yalidine match)
+  const yalNums = new Set(S.yalidine_rows.map(r=>str(r['n commande']||'').trim()));
+  const ecomOrders = S.shopify_rows.filter(r=>str(r['Source']).toLowerCase()!=='pos' && str(r['Name']).startsWith('#'));
+  const ecomNums = [...new Set(ecomOrders.map(r=>str(r['Name']).slice(1)))];
+  const pending = ecomNums.filter(n=>!yalNums.has(n));
+
+  el.innerHTML = `
+    <div class="coverage-grid" style="margin-bottom:20px;">
+      <div class="cov-item">
+        <div class="cov-label">📦 Shopify</div>
+        <div class="cov-val">${nOrders} commandes</div>
+        <div class="cov-dates">${shopDates.min||'—'} → ${shopDates.max||'—'}</div>
+      </div>
+      <div class="cov-item">
+        <div class="cov-label">🚚 Yalidine</div>
+        <div class="cov-val">${nYal} colis</div>
+        <div class="cov-dates">${yalDates.min||'—'} → ${yalDates.max||'—'}</div>
+        ${pending.length ? `<div class="cov-missing">⚠️ ${pending.length} commandes sans statut</div>` : '<div style="color:var(--green2);font-size:10px;margin-top:6px;">✅ Tout couvert</div>'}
+      </div>
+      <div class="cov-item">
+        <div class="cov-label">📋 Catalogue</div>
+        <div class="cov-val">${nCat} SKUs</div>
+        <div class="cov-dates">${nCat ? '✅ Chargé' : '⚠️ Non chargé'}</div>
+      </div>
+      <div class="cov-item">
+        <div class="cov-label">💸 Dépenses</div>
+        <div class="cov-val">${nDep} lignes</div>
+        <div class="cov-dates">${nDep ? '✅ Chargé' : '⚠️ Non chargé'}</div>
+      </div>
+    </div>
+    ${pending.length ? `
+    <div style="background:var(--bg2);border:1px solid rgba(212,168,67,.3);border-radius:var(--r2);padding:16px;">
+      <div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:8px;">⚠️ Commandes e-commerce sans fichier Yalidine (${pending.length})</div>
+      <div style="font-size:11px;color:var(--text3);line-height:1.8;">${pending.slice(0,30).map(n=>'#'+n).join(', ')}${pending.length>30?` ... et ${pending.length-30} autres`:''}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px;">Retournez sur Import pour uploader les fichiers Yalidine correspondants.</div>
+    </div>` : ''}
+  `;
+}
+
+// ═══ RECONCILIATION ═══
+function renderOrders() {
+  const search = (document.getElementById('r-search')?.value||'').toLowerCase();
+  const posF = document.getElementById('r-pos')?.value||'';
+  const statF = document.getElementById('r-statut')?.value||'';
+  const monthF = document.getElementById('r-month')?.value||'';
+
+  let rows = S.orders.filter(o => {
+    if(posF && o.pos!==posF) return false;
+    if(statF && o.statut!==statF) return false;
+    if(monthF && o.month!==monthF) return false;
+    if(search && !(o.name+o.date+o.pos).toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  const totalCA = rows.reduce((s,o)=>s+o.ca,0);
+  const totalCMV = rows.reduce((s,o)=>s+o.cmvTotal,0);
+  const totalFrais = rows.reduce((s,o)=>s+o.fraisYal,0);
+  document.getElementById('orders-stats').innerHTML = `
+    <div class="stat"><div class="stat-label">Commandes</div><div class="stat-val">${rows.length}</div></div>
+    <div class="stat"><div class="stat-label">CA</div><div class="stat-val" style="color:var(--gold)">${fDA(totalCA)}</div></div>
+    <div class="stat"><div class="stat-label">CMV total</div><div class="stat-val" style="color:var(--red2)">${fDA(totalCMV)}</div></div>
+    <div class="stat"><div class="stat-label">Frais YAL</div><div class="stat-val" style="color:var(--red2)">${fDA(totalFrais)}</div></div>
+    <div class="stat"><div class="stat-label">Marge brute</div><div class="stat-val" style="color:var(--green2)">${fDA(totalCA-totalCMV-totalFrais)}</div></div>
+  `;
+
+  document.getElementById('tb-orders').innerHTML = rows.slice(0,300).map(o => `
+    <tr>
+      <td class="mono">${o.date}</td>
+      <td class="mono" style="font-size:11px;">${o.name}</td>
+      <td><span style="font-size:11px;">${POS_LABELS[o.pos]||o.pos}</span></td>
+      <td><span class="badge b-${o.statut}">${statLabel(o.statut)}</span></td>
+      <td class="${o.ca>0?'pos':'neutral'} mono">${fDA(o.ca)}</td>
+      <td class="${o.cmvProd>0?'neg':'neutral'} mono">${fDA(o.cmvProd)}</td>
+      <td class="${o.packaging>0?'neg':'neutral'} mono">${fDA(o.packaging)}</td>
+      <td class="${o.cmvTotal>0?'neg':'neutral'} mono">${fDA(o.cmvTotal)}</td>
+      <td class="${o.fraisYal>0?'neg':'neutral'} mono">${fDA(o.fraisYal)}</td>
+      <td class="${o.marge>0?'pos':'neg'} mono">${fDA(o.marge)}</td>
+    </tr>`).join('');
+}
+
+function renderDeps() {
+  const search = (document.getElementById('rd-search')?.value||'').toLowerCase();
+  const catF = document.getElementById('rd-cat')?.value||'';
+  const posF = document.getElementById('rd-pos')?.value||'';
+  const CATS_F = ['loyer','salaire','publicité','meta ads','pub','fournisseur','autre charge','import','impots'];
+  const CATS_V = ['ménage','eau','fournitures','déplacement','repas','divers','pochons','flexy','travaux','shooting'];
+
+  let rows = S.depenses.filter(d => {
+    if(catF && d.cat!==catF) return false;
+    if(posF && d.pos!==posF) return false;
+    if(search && !(d.cat+d.note+d.date).toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  document.getElementById('tb-deps').innerHTML = rows.slice(0,300).map((d,i) => `
+    <tr>
+      <td class="mono">${d.date}</td>
+      <td>
+        <select class="editable" onchange="S.depenses[${S.depenses.indexOf(d)}].cat=this.value;saveState()">
+          <optgroup label="Charges fixes">${CATS_F.map(c=>`<option ${d.cat.toLowerCase()===c?'selected':''}>${d.cat.toLowerCase()===c?d.cat:c.charAt(0).toUpperCase()+c.slice(1)}</option>`).join('')}</optgroup>
+          <optgroup label="Charges variables">${CATS_V.map(c=>`<option ${d.cat.toLowerCase()===c?'selected':''}>${d.cat.toLowerCase()===c?d.cat:c.charAt(0).toUpperCase()+c.slice(1)}</option>`).join('')}</optgroup>
+          <option value="${d.cat}" selected>${d.cat}</option>
+        </select>
+      </td>
+      <td><input class="editable mono" type="number" value="${d.montant}" style="width:100px;text-align:right;" onchange="S.depenses[${S.depenses.indexOf(d)}].montant=parseFloat(this.value)||0;saveState()"></td>
+      <td>
+        <select class="editable" onchange="S.depenses[${S.depenses.indexOf(d)}].pos=this.value;saveState()">
+          ${['dely','garden','oran','ecom','global'].map(p=>`<option value="${p}" ${d.pos===p?'selected':''}>${p==='global'?'Global':POS_LABELS[p]}</option>`).join('')}
+        </select>
+      </td>
+      <td style="color:var(--text3);font-size:11px;">${d.note}</td>
+    </tr>`).join('');
+}
+
+function renderSkus() {
+  // Find SKUs with no cost
+  const skuStats = {};
+  S.orders.forEach(o => {
+    o.lines?.forEach(l => {
+      if(!l.sku || EXCL_SKUS.has(l.sku) || l.sku.startsWith('CAC')) return;
+      const cat = S.catalogue[l.sku];
+      if(!cat || !cat.cout) {
+        if(!skuStats[l.sku]) skuStats[l.sku] = {nom:l.name, qty:0, ca:0};
+        skuStats[l.sku].qty += l.qty;
+        skuStats[l.sku].ca += l.price * l.qty;
+      }
+    });
+  });
+
+  document.getElementById('tb-skus').innerHTML = Object.entries(skuStats).map(([sku,d]) => `
+    <tr>
+      <td class="mono" style="font-size:11px;">${sku}</td>
+      <td>${d.nom}</td>
+      <td class="mono">${d.qty}</td>
+      <td class="pos mono">${fDA(d.ca)}</td>
+      <td><input class="editable mono" type="number" id="cost-${sku}" value="${S.manualCosts[sku]||''}" placeholder="0" style="width:100px;text-align:right;"></td>
+    </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--green2);padding:20px;">✅ Tous les SKUs ont un coût renseigné</td></tr>';
+}
+
+function applyManualCosts() {
+  const rows = document.querySelectorAll('#tb-skus tr');
+  rows.forEach(row => {
+    const input = row.querySelector('input');
+    const sku = row.querySelector('.mono')?.textContent?.trim();
+    if(input && sku && input.value) {
+      S.manualCosts[sku] = parseFloat(input.value)||0;
+    }
+  });
+  saveState();
+  processAll();
+  toast('Coûts appliqués ✅','ok');
+}
+
+function switchTab(tab, btn) {
+  ['orders','depenses','skus'].forEach(t => {
+    const el = document.getElementById('rtab-'+t);
+    if(el) el.style.display = t===tab?'block':'none';
+  });
+  document.querySelectorAll('.tabs .tab').forEach(b=>b.classList.toggle('on',b===btn));
+}
+
+// ═══ P&L ═══
+function buildPeriodGrid() {
+  const months = [...new Set(S.orders.map(o=>o.month).filter(Boolean))].sort();
+  const pg = document.getElementById('period-grid');
+  if(S.period==='mois') {
+    pg.innerHTML = months.map(m=>`
+      <div class="pcell has ${S.selPeriod===m?'on':''}" onclick="S.selPeriod='${m}';document.querySelectorAll('.pcell').forEach(c=>c.classList.toggle('on',c.dataset.m==='${m}'));renderPnl()" data-m="${m}">${fMonth(m)}</div>
+    `).join('');
+  } else {
+    const years = [...new Set(months.map(m=>m.substring(0,4)))].sort();
+    pg.innerHTML = years.map(y=>`<div class="pcell has ${S.selPeriod===y?'on':''}" onclick="S.selPeriod='${y}';renderPnl()" data-m="${y}">${y}</div>`).join('');
+    if(!S.selPeriod && years.length) S.selPeriod = years[years.length-1];
+  }
+}
+
+function setPeriod(p, btn) {
+  S.period = p;
+  document.querySelectorAll('.tabs .tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  if(p==='mois') {
+    const months = [...new Set(S.orders.map(o=>o.month).filter(Boolean))].sort();
+    S.selPeriod = months[months.length-1]||null;
+  } else if(p==='ytd') {
+    S.selPeriod = new Date().getFullYear().toString();
+  } else {
+    S.selPeriod = null;
+  }
+  document.getElementById('period-selector').style.display = p==='tout' ? 'none' : 'block';
+  buildPeriodGrid();
+  renderPnl();
+}
+
+function setPOS(p, btn) {
+  S.selPos = p;
+  document.querySelectorAll('.postab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderPnl();
+}
+
+function filterData() {
+  let orders = S.orders;
+  let deps = S.depenses;
+
+  // Filtre POS
+  if(S.selPos !== 'total') {
+    orders = orders.filter(o=>o.pos===S.selPos);
+    deps = deps.filter(d=>d.pos===S.selPos||d.pos==='global');
+  }
+
+  // Filtre période
+  if(S.period==='mois' && S.selPeriod) {
+    orders = orders.filter(o=>o.month===S.selPeriod);
+    deps = deps.filter(d=>d.date?.startsWith(S.selPeriod));
+  } else if(S.period==='ytd' && S.selPeriod) {
+    orders = orders.filter(o=>o.month?.startsWith(S.selPeriod));
+    deps = deps.filter(d=>d.date?.startsWith(S.selPeriod));
+  }
+
+  return {orders, deps};
+}
+
+function calcMetrics(orders, deps) {
+  const ca={dely:0,garden:0,oran:0,ecom:0};
+  const cmvProd={dely:0,garden:0,oran:0,ecom:0};
+  const cmvPkg={dely:0,garden:0,oran:0,ecom:0};
+  let fraisYal=0;
+
+  orders.forEach(o=>{
+    if(ca[o.pos]!==undefined){
+      ca[o.pos]+=o.ca;
+      cmvProd[o.pos]+=o.cmvProd;
+      cmvPkg[o.pos]+=o.packaging;
+    }
+    fraisYal+=o.fraisYal;
+  });
+
+  const caTotal=Object.values(ca).reduce((s,v)=>s+v,0);
+  const cmvProdTotal=Object.values(cmvProd).reduce((s,v)=>s+v,0);
+  const cmvPkgTotal=Object.values(cmvPkg).reduce((s,v)=>s+v,0);
+  const cmvTotal=cmvProdTotal+cmvPkgTotal;
+  const margeB=caTotal-cmvTotal-fraisYal;
+  const txMargeB=caTotal>0?(margeB/caTotal*100).toFixed(1):0;
+
+  // Charges fixes manuelles — filtrer par pos et mois
+  const cfManuelles = S.chargesFixesManuelles.filter(c => {
+    const posOk = S.selPos==='total' || c.pos===S.selPos || c.pos==='global';
+    let moisOk = true;
+    if(S.period==='mois' && S.selPeriod) moisOk = !c.mois || c.mois===S.selPeriod;
+    else if(S.period==='ytd' && S.selPeriod) moisOk = !c.mois || c.mois.startsWith(S.selPeriod);
+    return posOk && moisOk;
+  });
+
+  // Charges
+  const chargesF={}, chargesV={};
+  cfManuelles.forEach(c=>{ chargesF[c.label]=(chargesF[c.label]||0)+c.montant; });
+  deps.forEach(d=>{
+    const cat=d.cat||'Autre';
+    const isFix=CATS_FIXES.some(k=>cat.toLowerCase().includes(k));
+    const map=isFix?chargesF:chargesV;
+    map[cat]=(map[cat]||0)+d.montant;
+  });
+  const totalF=Object.values(chargesF).reduce((s,v)=>s+v,0);
+  const totalV=Object.values(chargesV).reduce((s,v)=>s+v,0);
+  const totalCharges=totalF+totalV;
+  const ebitda=margeB-totalCharges;
+  const txEbitda=caTotal>0?(ebitda/caTotal*100).toFixed(1):0;
+
+  // Stats
+  const nLivrees=orders.filter(o=>o.statut==='livree').length;
+  const nRetours=orders.filter(o=>o.statut==='retour').length;
+  const nPos=orders.filter(o=>o.statut==='pos').length;
+  const nPending=orders.filter(o=>o.statut==='pending').length;
+
+  return {ca,caTotal,cmvProd,cmvProdTotal,cmvPkg,cmvPkgTotal,cmvTotal,fraisYal,
+          margeB,txMargeB,chargesF,chargesV,totalF,totalV,totalCharges,ebitda,txEbitda,
+          nLivrees,nRetours,nPos,nPending};
+}
+
+function buildPnl() {
+  if(!S.processed) processAll();
+  buildPeriodGrid();
+  renderPnl();
+}
+
+function renderPnl() {
+  const {orders,deps} = filterData();
+  const m = calcMetrics(orders,deps);
+  const showPos = S.selPos==='total';
+  const pct = v => m.caTotal>0?(v/m.caTotal*100).toFixed(1)+'%':'—';
+
+  // KPIs
+  document.getElementById('kpi-grid').innerHTML = `
+    <div class="kpi gold"><div class="kpi-label">Chiffre d'Affaires</div><div class="kpi-val">${fDA(m.caTotal)}</div><div class="kpi-sub">${orders.filter(o=>o.ca>0).length} commandes</div></div>
+    <div class="kpi"><div class="kpi-label">CMV total</div><div class="kpi-val red" style="color:var(--red2)">${fDA(m.cmvTotal)}</div><div class="kpi-sub">${pct(m.cmvTotal)} du CA</div></div>
+    <div class="kpi green"><div class="kpi-label">Marge Brute</div><div class="kpi-val" style="color:${m.margeB>=0?'var(--green2)':'var(--red2)'}">${fDA(m.margeB)}</div><div class="kpi-sub">${m.txMargeB}% du CA</div></div>
+    <div class="kpi"><div class="kpi-label">Charges</div><div class="kpi-val" style="color:var(--red2)">${fDA(m.totalCharges)}</div><div class="kpi-sub">${pct(m.totalCharges)} du CA</div></div>
+    <div class="kpi ${m.ebitda>=0?'green':''}"><div class="kpi-label">EBITDA</div><div class="kpi-val" style="color:${m.ebitda>=0?'var(--green2)':'var(--red2)'}">${fDA(m.ebitda)}</div><div class="kpi-sub">${m.txEbitda}% du CA</div></div>
+  `;
+
+  const cols = showPos ? 7 : 3;
+  const posHead = showPos ? '<th>Dely Ibrahim</th><th>Garden City</th><th>AZ Oran</th><th>E-Commerce</th>' : '';
+
+  let html = `<thead><tr><th>Libellé</th>${posHead}<th>TOTAL</th><th>% CA</th></tr></thead><tbody>`;
+
+  const row = (label, vals, total, cls='pnl-row', indent=true) => {
+    let r=`<tr class="${cls}"><td ${indent&&cls==='pnl-row'?'style="padding-left:24px;"':''}>${label}</td>`;
+    if(showPos) ['dely','garden','oran','ecom'].forEach(k=>{
+      const v=vals[k]||0;
+      r+=`<td class="${v<0?'neg':v>0?'pos':'neutral'} mono">${fDA(v)}</td>`;
+    });
+    r+=`<td class="${total<0?'neg':total>0?'pos':'neutral'} mono">${fDA(total)}</td>`;
+    r+=`<td style="color:var(--text3);font-size:11px;">${pct(total)}</td></tr>`;
+    return r;
+  };
+
+  const secRow = label => `<tr class="pnl-section-row"><td colspan="${cols}">${label}</td></tr>`;
+  const subRow = (label, vals, total) => row(label, vals, total, 'pnl-subtotal', false);
+
+  // REVENUS
+  html += secRow('REVENUS');
+  html += row('Chiffre d\'Affaires', m.ca, m.caTotal);
+
+  // CMV
+  html += secRow('COÛT DES MARCHANDISES');
+  const cmvProdNeg=Object.fromEntries(Object.entries(m.cmvProd).map(([k,v])=>[k,-v]));
+  const cmvPkgNeg=Object.fromEntries(Object.entries(m.cmvPkg).map(([k,v])=>[k,-v]));
+  html += row('Coût produits', cmvProdNeg, -m.cmvProdTotal);
+  html += row('Packaging', cmvPkgNeg, -m.cmvPkgTotal);
+  if(m.fraisYal) html += `<tr class="pnl-row"><td style="padding-left:24px;">Frais Yalidine</td>${showPos?'<td colspan="4"></td>':''}<td class="neg mono">${fDA(-m.fraisYal)}</td><td style="color:var(--text3);font-size:11px;">${pct(-m.fraisYal)}</td></tr>`;
+  html += subRow('MARGE BRUTE', {}, m.margeB);
+
+  // CHARGES FIXES
+  if(Object.keys(m.chargesF).length) {
+    html += secRow('CHARGES FIXES');
+    Object.entries(m.chargesF).forEach(([cat,val])=>{
+      html+=`<tr class="pnl-row"><td style="padding-left:24px;">${cat}</td>${showPos?'<td colspan="4"></td>':''}<td class="neg mono">${fDA(-val)}</td><td style="color:var(--text3);font-size:11px;">${pct(-val)}</td></tr>`;
+    });
+    html += `<tr class="pnl-subtotal"><td>Total charges fixes</td>${showPos?'<td colspan="4"></td>':''}<td class="neg mono">${fDA(-m.totalF)}</td><td style="color:var(--text3);font-size:11px;">${pct(-m.totalF)}</td></tr>`;
+  }
+
+  // CHARGES VARIABLES
+  if(Object.keys(m.chargesV).length) {
+    html += secRow('CHARGES VARIABLES');
+    Object.entries(m.chargesV).forEach(([cat,val])=>{
+      html+=`<tr class="pnl-row"><td style="padding-left:24px;">${cat}</td>${showPos?'<td colspan="4"></td>':''}<td class="neg mono">${fDA(-val)}</td><td style="color:var(--text3);font-size:11px;">${pct(-val)}</td></tr>`;
+    });
+    html += `<tr class="pnl-subtotal"><td>Total charges variables</td>${showPos?'<td colspan="4"></td>':''}<td class="neg mono">${fDA(-m.totalV)}</td><td style="color:var(--text3);font-size:11px;">${pct(-m.totalV)}</td></tr>`;
+  }
+
+  html += `<tr class="pnl-ebitda"><td>EBITDA</td>${showPos?'<td colspan="4"></td>':''}<td class="${m.ebitda>=0?'pos':'neg'} mono">${fDA(m.ebitda)}</td><td style="color:var(--gold);font-size:11px;">${m.txEbitda}%</td></tr>`;
+  html += '</tbody>';
+  document.getElementById('pnl-tbl').innerHTML = html;
+}
+
+// ═══ DETAIL ═══
+function renderDetail() {
+  const search=(document.getElementById('det-search')?.value||'').toLowerCase();
+  const posF=document.getElementById('det-pos')?.value||'';
+  const statF=document.getElementById('det-statut')?.value||'';
+  const monthF=document.getElementById('det-month')?.value||'';
+
+  let rows=S.orders.filter(o=>{
+    if(posF && o.pos!==posF) return false;
+    if(statF && o.statut!==statF) return false;
+    if(monthF && o.month!==monthF) return false;
+    if(search && !(o.name+o.pos).toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  const totalCA=rows.reduce((s,o)=>s+o.ca,0);
+  document.getElementById('det-stats').innerHTML=`
+    <div class="stat"><div class="stat-label">Commandes</div><div class="stat-val">${rows.length}</div></div>
+    <div class="stat"><div class="stat-label">CA</div><div class="stat-val" style="color:var(--gold)">${fDA(totalCA)}</div></div>
+    <div class="stat"><div class="stat-label">Livrées</div><div class="stat-val" style="color:var(--green2)">${rows.filter(o=>o.statut==='livree').length}</div></div>
+    <div class="stat"><div class="stat-label">Retours</div><div class="stat-val" style="color:var(--red2)">${rows.filter(o=>o.statut==='retour').length}</div></div>
+    <div class="stat"><div class="stat-label">En attente YAL</div><div class="stat-val" style="color:#60A5FA">${rows.filter(o=>o.statut==='pending').length}</div></div>
+  `;
+
+  document.getElementById('tb-detail').innerHTML=rows.slice(0,500).map(o=>{
+    const txM=o.ca>0?((o.marge/o.ca)*100).toFixed(1)+'%':'—';
+    return `<tr>
+      <td class="mono">${o.date}</td>
+      <td class="mono" style="font-size:11px;">${o.name}</td>
+      <td style="font-size:11px;">${POS_LABELS[o.pos]||o.pos}</td>
+      <td><span class="badge b-${o.statut}">${statLabel(o.statut)}</span></td>
+      <td class="mono">${o.nbBijoux}</td>
+      <td class="${o.ca>0?'pos':'neutral'} mono">${fDA(o.ca)}</td>
+      <td class="${o.cmvProd>0?'neg':'neutral'} mono">${fDA(o.cmvProd)}</td>
+      <td class="${o.packaging>0?'neg':'neutral'} mono">${fDA(o.packaging)}</td>
+      <td class="${o.cmvTotal>0?'neg':'neutral'} mono">${fDA(o.cmvTotal)}</td>
+      <td class="${o.fraisYal>0?'neg':'neutral'} mono">${fDA(o.fraisYal)}</td>
+      <td class="${o.marge>0?'pos':'neg'} mono">${fDA(o.marge)}</td>
+      <td style="color:var(--text3);font-size:11px;">${txM}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══ EXPORTS ═══
+function exportPnlXlsx() {
+  if(typeof XLSX==='undefined'){toast('Lib non chargée','err');return;}
+  const {orders,deps}=filterData();
+  const m=calcMetrics(orders,deps);
+  const rows=[
+    ['AOLA — P&L',POS_LABELS[S.selPos]||S.selPos,S.period,S.selPeriod||''],
+    ['Libellé','Montant (DA)','% CA'],
+    ['Chiffre d\'Affaires',m.caTotal,'100%'],
+    ['Coût produits',-m.cmvProdTotal,m.caTotal?(-m.cmvProdTotal/m.caTotal*100).toFixed(1)+'%':''],
+    ['Packaging',-m.cmvPkgTotal,''],
+    ['Frais Yalidine',-m.fraisYal,''],
+    ['MARGE BRUTE',m.margeB,m.txMargeB+'%'],
+    [],...Object.entries(m.chargesF).map(([k,v])=>[k,-v,'']),
+    ['Total charges fixes',-m.totalF,''],
+    [],...Object.entries(m.chargesV).map(([k,v])=>[k,-v,'']),
+    ['Total charges variables',-m.totalV,''],
+    ['EBITDA',m.ebitda,m.txEbitda+'%'],
+  ];
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:35},{wch:18},{wch:10}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'P&L');
+
+  const det=[['Date','Commande','POS','Statut','Nb bijoux','CA','CMV produits','Packaging','CMV total','Frais YAL','Marge','% Marge']];
+  orders.forEach(o=>det.push([o.date,o.name,POS_LABELS[o.pos],statLabel(o.statut),o.nbBijoux,o.ca,-o.cmvProd,-o.packaging,-o.cmvTotal,-o.fraisYal,o.marge,o.ca>0?(o.marge/o.ca*100).toFixed(1)+'%':'']));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(det),'Détail');
+  XLSX.writeFile(wb,`AOLA_PnL_${S.selPeriod||'complet'}.xlsx`);
+  toast('Export Excel ✅','ok');
+}
+
+function exportDetailXlsx() {
+  if(typeof XLSX==='undefined'){toast('Lib non chargée','err');return;}
+  const det=[['Date','Commande','POS','Statut','Nb bijoux','CA','CMV produits','Packaging','CMV total','Frais YAL','Marge','% Marge']];
+  S.orders.forEach(o=>det.push([o.date,o.name,POS_LABELS[o.pos],statLabel(o.statut),o.nbBijoux,o.ca,-o.cmvProd,-o.packaging,-o.cmvTotal,-o.fraisYal,o.marge,o.ca>0?(o.marge/o.ca*100).toFixed(1)+'%':'']));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(det),'Commandes');
+  XLSX.writeFile(wb,'AOLA_Commandes_detail.xlsx');
+  toast('Export ✅','ok');
+}
+
+function exportPnlPdf() {
+  const {orders,deps}=filterData();
+  const m=calcMetrics(orders,deps);
+  const w=window.open('','_blank');
+  if(!w){toast('Autorisez les popups','err');return;}
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>AOLA P&L<\/title>
+  <style>body{font-family:Arial;font-size:12px;padding:24px;}h1{font-size:15px;margin-bottom:16px;}
+  table{width:100%;border-collapse:collapse;}
+  th{background:#111827;color:#fff;padding:6px 10px;font-size:10px;text-align:left;text-transform:uppercase;}
+  td{padding:6px 10px;border-bottom:1px solid #eee;font-size:12px;}
+  .pos{color:#16A34A;font-weight:700;}.neg{color:#DC2626;font-weight:700;}
+  .sub{font-weight:700;background:#F3F4F6;}.ebitda{font-weight:800;background:#FEF3C7;font-size:13px;}
+  .sec{background:#F9FAFB;font-size:10px;font-weight:600;text-transform:uppercase;color:#6B7280;padding:10px 10px 4px;letter-spacing:.5px;}
+  .indent{padding-left:20px;color:#4B5563;}<\/style><\/head><body>
+  <h1>AOLA — P&L ${POS_LABELS[S.selPos]} · ${S.selPeriod||'Tout'} (${S.period})<\/h1>
+  <table>
+  <tr class="sec"><td colspan="3">REVENUS<\/td><\/tr>
+  <tr><td class="indent">Chiffre d'Affaires<\/td><td class="pos">${fDA(m.caTotal)}<\/td><td>100%<\/td><\/tr>
+  <tr class="sec"><td colspan="3">COÛT DES MARCHANDISES<\/td><\/tr>
+  <tr><td class="indent">Coût produits<\/td><td class="neg">${fDA(-m.cmvProdTotal)}<\/td><td>${m.caTotal?(-m.cmvProdTotal/m.caTotal*100).toFixed(1)+'%':''}<\/td><\/tr>
+  <tr><td class="indent">Packaging<\/td><td class="neg">${fDA(-m.cmvPkgTotal)}<\/td><td><\/td><\/tr>
+  ${m.fraisYal?`<tr><td class="indent">Frais Yalidine<\/td><td class="neg">${fDA(-m.fraisYal)}<\/td><td><\/td><\/tr>`:''}
+  <tr class="sub"><td>MARGE BRUTE<\/td><td class="${m.margeB>=0?'pos':'neg'}">${fDA(m.margeB)}<\/td><td>${m.txMargeB}%<\/td><\/tr>
+  ${Object.keys(m.chargesF).length?`<tr class="sec"><td colspan="3">CHARGES FIXES<\/td><\/tr>`:''}
+  ${Object.entries(m.chargesF).map(([k,v])=>`<tr><td class="indent">${k}<\/td><td class="neg">${fDA(-v)}<\/td><td><\/td><\/tr>`).join('')}
+  ${Object.keys(m.chargesF).length?`<tr class="sub"><td>Total charges fixes<\/td><td class="neg">${fDA(-m.totalF)}<\/td><td><\/td><\/tr>`:''}
+  ${Object.keys(m.chargesV).length?`<tr class="sec"><td colspan="3">CHARGES VARIABLES<\/td><\/tr>`:''}
+  ${Object.entries(m.chargesV).map(([k,v])=>`<tr><td class="indent">${k}<\/td><td class="neg">${fDA(-v)}<\/td><td><\/td><\/tr>`).join('')}
+  ${Object.keys(m.chargesV).length?`<tr class="sub"><td>Total charges variables<\/td><td class="neg">${fDA(-m.totalV)}<\/td><td><\/td><\/tr>`:''}
+  <tr class="ebitda"><td>EBITDA<\/td><td class="${m.ebitda>=0?'pos':'neg'}">${fDA(m.ebitda)}<\/td><td>${m.txEbitda}%<\/td><\/tr>
+  <\/table><\/body><\/html>`);
+  w.document.close();
+  setTimeout(()=>w.print(),500);
+  toast('PDF prêt','ok');
+}
+
+// ═══ RESET ═══
+function confirmReset() { document.getElementById('modal-reset').classList.add('on'); }
+function closeModal() { document.getElementById('modal-reset').classList.remove('on'); }
+function doReset() {
+  localStorage.removeItem('aola_pnl_v1');
+  S = {shopify_rows:[],yalidine_rows:[],catalogue:{},depenses:[],manualCosts:{},chargesFixesManuelles:[],orders:[],period:'mois',selPeriod:null,selPos:'total',processed:false};
+  closeModal();
+  ['shopify','yalidine','catalogue','depenses'].forEach(t=>{
+    setStatus(t,'','');
+    setDates(t,'','','');
+    document.getElementById('card-'+t).classList.remove('done');
+  });
+  updateSidebar();
+  toast('Données réinitialisées','ok');
+}
+
+// ═══ NAVIGATION ═══
+function showPage(id) {
+  ['import','coverage','recon','charges','pnl','detail'].forEach(p=>{
+    document.getElementById('pg-'+p)?.classList.toggle('on',p===id);
+    document.getElementById('nav-'+p)?.classList.toggle('active',p===id);
+  });
+  if(id==='recon') renderOrders();
+  if(id==='charges') { renderChargesFixes(); updateCfMonthFilter(); }
+  if(id==='detail') renderDetail();
+  if(id==='coverage') updateCoverage();
+}
+
+// ═══ UTILS ═══
+function str(v) { return v===null||v===undefined?'':String(v); }
+function parseF(v) { return parseFloat(str(v).replace(/[^0-9.\-]/g,''))||0; }
+function fDA(n) { return Math.round(n||0).toLocaleString('fr-DZ')+' DA'; }
+function fMonth(m) {
+  if(!m) return '';
+  const [y,mo]=m.split('-');
+  const n=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+  return (n[parseInt(mo)-1]||mo)+' '+y;
+}
+function statLabel(s) {
+  const m={pos:'POS',livree:'Livrée',retour:'Retour',pending:'En attente',encours:'En cours',annulee:'Annulée'};
+  return m[s]||s;
+}
+function setStatus(t,msg,cls) {
+  const el=document.getElementById('st-'+t);
+  if(el){el.textContent=msg;el.className='uc-status'+(cls?' '+cls:'');}
+}
+function setDates(t,min,max,extra) {
+  const el=document.getElementById('dt-'+t);
+  if(el) el.textContent = min&&max ? `${min} → ${max}${extra?' · '+extra:''}` : (extra||'');
+}
+function getShopifyDates() {
+  const dates=S.shopify_rows.map(r=>str(r['Created at']||'').substring(0,10)).filter(Boolean).sort();
+  return {min:dates[0]||'',max:dates[dates.length-1]||''};
+}
+function getYalDates() {
+  const dates=S.yalidine_rows.map(r=>str(r['date dernier statut']||r['date']||r['Date']||'').substring(0,10)).filter(Boolean).sort();
+  return {min:dates[0]||'',max:dates[dates.length-1]||''};
+}
+function countOrders() { return new Set(S.shopify_rows.map(r=>r['Name']).filter(n=>str(n).startsWith('#'))).size; }
+
+function updateSidebar() {
+  const nOrders = countOrders();
+  const nYal = S.yalidine_rows.length;
+  const nDep = S.depenses.length;
+  const nCat = Object.keys(S.catalogue).length;
+  const nCF = S.chargesFixesManuelles?.length||0;
+  document.getElementById('nb-charges').textContent = nCF>0?nCF:'—';
+  document.getElementById('nb-import').textContent = nOrders>0?'✓':'—';
+  document.getElementById('nb-coverage').textContent = nOrders>0?nOrders+' cmd':'—';
+  document.getElementById('nb-recon').textContent = S.orders.length>0?S.orders.length:'—';
+  document.getElementById('nb-pnl').textContent = S.processed?'✓':'—';
+  document.getElementById('nb-detail').textContent = S.orders.length>0?S.orders.length:'—';
+  document.getElementById('sidebar-footer').innerHTML = `
+    <div class="sf-row"><span class="sf-label">Commandes</span><span class="sf-val">${nOrders}</span></div>
+    <div class="sf-row"><span class="sf-label">Yalidine</span><span class="sf-val">${nYal}</span></div>
+    <div class="sf-row"><span class="sf-label">SKUs catalogue</span><span class="sf-val">${nCat}</span></div>
+    <div class="sf-row"><span class="sf-label">Dépenses</span><span class="sf-val">${nDep}</span></div>
+  `;
+  // Update upload cards
+  if(nOrders>0){document.getElementById('card-shopify').classList.add('done');const d=getShopifyDates();setStatus('shopify',`✅ ${nOrders} commandes (${S.shopify_rows.length} lignes)`,'ok');setDates('shopify',d.min,d.max,'');}
+  if(nYal>0){document.getElementById('card-yalidine').classList.add('done');const d=getYalDates();setStatus('yalidine',`✅ ${nYal} colis cumulés`,'ok');setDates('yalidine',d.min,d.max,'');}
+  if(nCat>0){document.getElementById('card-catalogue').classList.add('done');setStatus('catalogue',`✅ ${nCat} SKUs`,'ok');}
+  if(nDep>0){document.getElementById('card-depenses').classList.add('done');setStatus('depenses',`✅ ${nDep} dépenses`,'ok');}
+}
+
+
+// ═══ CHARGES FIXES MANUELLES ═══
+function addChargeFix() {
+  const label = document.getElementById('cf-label').value.trim();
+  const montant = parseFloat(document.getElementById('cf-montant').value)||0;
+  const pos = document.getElementById('cf-pos').value;
+  const mois = document.getElementById('cf-mois').value||'';
+  if(!label){toast('Saisissez un libellé','err');return;}
+  if(!montant){toast('Saisissez un montant','err');return;}
+  S.chargesFixesManuelles.push({id:Date.now(), label, montant, pos, mois});
+  saveState();
+  document.getElementById('cf-label').value='';
+  document.getElementById('cf-montant').value='';
+  renderChargesFixes();
+  updateCfMonthFilter();
+  updateSidebar();
+  toast('Charge ajoutée ✅','ok');
+}
+
+function deleteChargeFix(id) {
+  S.chargesFixesManuelles = S.chargesFixesManuelles.filter(c=>c.id!==id);
+  saveState();
+  renderChargesFixes();
+  updateCfMonthFilter();
+  updateSidebar();
+  toast('Charge supprimée','ok');
+}
+
+function renderChargesFixes() {
+  const posF = document.getElementById('cf-filter-pos')?.value||'';
+  const moisF = document.getElementById('cf-filter-mois')?.value||'';
+  let rows = S.chargesFixesManuelles.filter(c => {
+    if(posF && c.pos!==posF) return false;
+    if(moisF && c.mois!==moisF) return false;
+    return true;
+  });
+
+  const total = rows.reduce((s,c)=>s+c.montant,0);
+  const cfTotal = document.getElementById('cf-total');
+  if(cfTotal) cfTotal.textContent = 'Total : '+fDA(total);
+
+  const tb = document.getElementById('tb-charges');
+  if(!tb) return;
+  tb.innerHTML = rows.length ? rows.map(c=>`
+    <tr>
+      <td>
+        <input class="editable" value="${c.label}" style="width:220px;"
+          onchange="S.chargesFixesManuelles.find(x=>x.id===${c.id}).label=this.value;saveState()">
+      </td>
+      <td>
+        <input class="editable mono" type="number" value="${c.montant}" style="width:120px;text-align:right;"
+          onchange="S.chargesFixesManuelles.find(x=>x.id===${c.id}).montant=parseFloat(this.value)||0;saveState();renderChargesFixes()">
+      </td>
+      <td>
+        <select class="editable" onchange="S.chargesFixesManuelles.find(x=>x.id===${c.id}).pos=this.value;saveState();renderChargesFixes()">
+          ${['dely','garden','oran','ecom','global'].map(p=>`<option value="${p}" ${c.pos===p?'selected':''}>${p==='global'?'Global':POS_LABELS[p]}</option>`).join('')}
+        </select>
+      </td>
+      <td style="color:var(--text3);font-family:var(--fm);font-size:11px;">${c.mois||'Tous mois'}</td>
+      <td><button onclick="deleteChargeFix(${c.id})" style="background:transparent;border:none;color:var(--red2);cursor:pointer;font-size:16px;">✕</button></td>
+    </tr>`).join('')
+    : '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:20px;">Aucune charge fixe saisie</td></tr>';
+
+  // Summary by POS
+  const summary = document.getElementById('cf-summary');
+  if(summary) {
+    const byPos = {dely:0,garden:0,oran:0,ecom:0,global:0};
+    S.chargesFixesManuelles.forEach(c=>{ if(byPos[c.pos]!==undefined) byPos[c.pos]+=c.montant; });
+    const totalAll = Object.values(byPos).reduce((s,v)=>s+v,0);
+    summary.innerHTML = [
+      ['dely','Dely Ibrahim'],['garden','Garden City'],['oran','AZ Oran'],
+      ['ecom','E-Commerce'],['global','Global']
+    ].map(([key,label])=>`
+      <div style="background:var(--bg3);border-radius:var(--r);padding:12px;">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">${label}</div>
+        <div style="font-size:14px;font-weight:700;font-family:var(--fm);color:${byPos[key]>0?'var(--red2)':'var(--text3)'};">${fDA(byPos[key])}</div>
+      </div>`).join('')
+    + `<div style="background:rgba(212,168,67,.08);border:1px solid rgba(212,168,67,.2);border-radius:var(--r);padding:12px;">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">TOTAL</div>
+        <div style="font-size:14px;font-weight:700;font-family:var(--fm);color:var(--gold);">${fDA(totalAll)}</div>
+      </div>`;
+  }
+}
+
+function updateCfMonthFilter() {
+  const months = [...new Set(S.chargesFixesManuelles.map(c=>c.mois).filter(Boolean))].sort();
+  const sel = document.getElementById('cf-filter-mois');
+  if(sel) sel.innerHTML = '<option value="">Tous mois</option>'+months.map(m=>`<option value="${m}">${fMonth(m)}</option>`).join('');
+}
+
+// ═══ INIT ═══
+document.addEventListener('DOMContentLoaded', () => {
+  const hadData = loadState();
+  updateSidebar();
+  updateCoverage();
+  if(hadData && S.shopify_rows.length) {
+    processAll();
+    toast('Données restaurées depuis la session précédente ✅','ok');
+  }
+});
+</script>
+</body>
+</html>
